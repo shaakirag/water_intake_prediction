@@ -1,4 +1,4 @@
-# Calorie Prediction Model
+# Water Intake Prediction Model
 
 This project provides a water intake prediction model that can be run in both Python and Arduino environments. The model predicts calories burned based on input features such as gender, age, weight, duration of activity, and heart rate.
 
