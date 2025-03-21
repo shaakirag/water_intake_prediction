@@ -1,33 +1,32 @@
 #include <TensorFlowLite.h>
-#include "calorie_nn_quant.h"  // Include the model as a C array
+#include "calorie_nn_quant.h"  // Model as a C array
 
-// Set up the interpreter
 tflite::MicroErrorReporter micro_error_reporter;
 tflite::ErrorReporter* error_reporter = &micro_error_reporter;
 
-// Load the model
 const tflite::Model* model = tflite::GetModel(calorie_nn_quant);
 if (model->version() != TFLITE_SCHEMA_VERSION) {
-  error_reporter->Report("Model version does not match Schema version!");
+  error_reporter->Report("Model version mismatch!");
   while (1);
 }
 
-// Set up the interpreter
-constexpr int kTensorArenaSize = 16 * 1024;  // Adjust based on model size
+// Increase arena size to 20KB for safety
+constexpr int kTensorArenaSize = 20 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
-tflite::MicroInterpreter interpreter(model, tensor_arena, kTensorArenaSize, error_reporter);
 
-// Allocate tensors
+tflite::MicroInterpreter interpreter(model, tensor_arena, kTensorArenaSize, error_reporter);
 interpreter.AllocateTensors();
 
-// Get input and output tensors
 TfLiteTensor* input = interpreter.input(0);
 TfLiteTensor* output = interpreter.output(0);
 
-// Prepare input data ([Gender, Age, Weight, Duration, Heart_Rate]) See README for data units
-float input_data[5] = {1.0, 25.0, 70.0, 100.0, 100.0};  // Replace with actual input
+// Data: [Gender, Age, Weight, Duration, Heart_Rate] See README for units
+float input_data[5] = {1.0, 25.0, 70.0, 100.0, 100.0};
+
+// Quantize input
 for (int i = 0; i < 5; i++) {
-  input->data.int8[i] = (int8_t)(input_data[i] / input->params.scale + input->params.zero_point);
+  float scaled_value = input_data[i] / input->params.scale + input->params.zero_point;
+  input->data.int8[i] = static_cast<int8_t>(round(scaled_value));
 }
 
 // Run inference
@@ -36,11 +35,12 @@ if (interpreter.Invoke() != kTfLiteOk) {
   while (1);
 }
 
-// Get the output
-float predicted_calories = output->data.f[0];
-float water_required = predicted_calories / 2.42;  // Calculate water required
+// Dequantize output
+int8_t output_quant = output->data.int8[0];
+float predicted_calories = (output_quant - output->params.zero_point) * output->params.scale;
 
-// Print results
+float water_required = predicted_calories / 2.42;
+
 Serial.print("Predicted Calories: ");
 Serial.println(predicted_calories);
 Serial.print("Water Required: ");
