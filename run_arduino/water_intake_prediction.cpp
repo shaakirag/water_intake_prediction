@@ -6,14 +6,14 @@ tflite::MicroErrorReporter micro_error_reporter;
 tflite::ErrorReporter* error_reporter = &micro_error_reporter;
 
 // Load the model
-const tflite::Model* model = tflite::GetModel(calorie_nn_quant_tflite);
+const tflite::Model* model = tflite::GetModel(calorie_nn_quant);
 if (model->version() != TFLITE_SCHEMA_VERSION) {
   error_reporter->Report("Model version does not match Schema version!");
   while (1);
 }
 
 // Set up the interpreter
-constexpr int kTensorArenaSize = 10 * 1024;  // Adjust based on model size
+constexpr int kTensorArenaSize = 16 * 1024;  // Adjust based on model size
 uint8_t tensor_arena[kTensorArenaSize];
 tflite::MicroInterpreter interpreter(model, tensor_arena, kTensorArenaSize, error_reporter);
 
@@ -27,7 +27,7 @@ TfLiteTensor* output = interpreter.output(0);
 // Prepare input data (example: [Gender, Age, Weight, Duration, Heart_Rate])
 float input_data[5] = {1.0, 25.0, 70.0, 100.0, 100.0};  // Replace with actual input
 for (int i = 0; i < 5; i++) {
-  input->data.f[i] = input_data[i];
+  input->data.int8[i] = (int8_t)(input_data[i] / input->params.scale + input->params.zero_point);
 }
 
 // Run inference
