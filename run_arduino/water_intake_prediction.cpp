@@ -24,7 +24,7 @@ interpreter.AllocateTensors();
 TfLiteTensor* input = interpreter.input(0);
 TfLiteTensor* output = interpreter.output(0);
 
-// Prepare input data (example: [Gender, Age, Weight, Duration, Heart_Rate])
+// Prepare input data ([Gender, Age, Weight, Duration, Heart_Rate]) See README for data units
 float input_data[5] = {1.0, 25.0, 70.0, 100.0, 100.0};  // Replace with actual input
 for (int i = 0; i < 5; i++) {
   input->data.int8[i] = (int8_t)(input_data[i] / input->params.scale + input->params.zero_point);
